@@ -14,56 +14,72 @@
       packages = forAllSystems (system:
         let
           pkgs = import nixpkgs { inherit system; };
-        in
-        {
-          default = pkgs.rustPlatform.buildRustPackage {
+
+          dmemcg-booster = pkgs.rustPlatform.buildRustPackage (finalAttrs: {
+            pname = "dmemcg-booster";
+            version = "0.1.3";
+
+            src = pkgs.fetchFromGitLab {
+              domain = "gitlab.steamos.cloud";
+              owner = "holo";
+              repo = "dmemcg-booster";
+              tag = finalAttrs.version;
+              hash = "sha256-JDT+JKxgaETinIHiP0Pqb7fPNrvcI6AQu90nmoA/YuI=";
+            };
+
+            postPatch = ''
+              substituteInPlace *.service \
+                --replace-fail /usr/bin/dmemcg-booster $out/bin/dmemcg-booster
+            '';
+
+            cargoHash = "sha256-NHK4734Jvi4RJieGn0RjYU0PzQFqaE4exHG77dmukig=";
+
+            nativeBuildInputs = [
+              pkgs.pkg-config
+            ];
+
+            buildInputs = [
+              pkgs.dbus
+            ];
+
+            postInstall = ''
+              install -Dm644 dmemcg-booster-system.service \
+                "$out/lib/systemd/system/dmemcg-booster-system.service"
+
+              install -Dm644 dmemcg-booster-user.service \
+                "$out/lib/systemd/user/dmemcg-booster-user.service"
+            '';
+
+            meta = {
+              description = "Dynamic memory cgroup booster";
+              homepage = "https://gitlab.steamos.cloud/holo/dmemcg-booster";
+              license = pkgs.lib.licenses.mit;
+              platforms = pkgs.lib.platforms.linux;
+              mainProgram = "dmemcg-booster";
+            };
+          });
+
+           niri-focused-booster = pkgs.rustPlatform.buildRustPackage {
             pname = "niri-focused-booster";
             version = "0.3.0";
 
             src = pkgs.fetchFromGitHub {
               owner = "1Naim";
               repo = "niri-focused-booster";
-              rev = "753d981bbfaed0727214109ed8e3ca82240af5a3"; # master @ 2026-09-14, matches Cargo.toml version 0.3.0
+              rev = "753d981bbfaed0727214109ed8e3ca82240af5a3";
               hash = "sha256-gOb+VugBrXeaHreq5fIoXgczYKtSkMws3v2glW4L9Gg=";
             };
 
-            # Vendored via the upstream Cargo.lock shipped next to this flake,
-            # so builds are fully reproducible and offline (no IFD needed).
-            cargoLock = {
-              lockFile = ./Cargo.lock;
-            };
+            cargoHash = "sha256-YJoudoTRl0eStUlepHgUKaD0pEcRaAvlmqJQcTsu6ao=";
 
             nativeBuildInputs = [ pkgs.pkg-config ];
-
-            # `xcb` (built with the "res" feature) links against libxcb / xcb-res
-            # to resolve the X11 client PID of Xwayland windows via XRes.
             buildInputs = [ pkgs.libxcb ];
-
-            meta = {
-              description = "Boosts dmem cgroup memory protection for the focused window on Niri";
-              longDescription = ''
-                niri-focused-booster listens to Niri focus events, resolves the
-                focused window's PID to its cgroup, and raises that cgroup's
-                dmem memory protection limit while lowering everyone else's to 0.
-                For Xwayland windows under xwayland-satellite it resolves the
-                focused X11 client PID via XRes so the boost lands on the real
-                app process.
-
-                At runtime this needs:
-                  - dmemcg-booster (https://gitlab.steamos.cloud/holo/dmemcg-booster/)
-                  - systemd
-                  - a kernel with dmem cgroup "aggressive protect" support
-                    (linux-cachyos, or linux + the dmemcg patch series)
-
-                Add `spawn-at-startup "niri-focused-booster"` to your Niri
-                config (~/.config/niri/config.kdl) to run it.
-              '';
-              homepage = "https://github.com/1Naim/niri-focused-booster";
-              license = pkgs.lib.licenses.gpl3Plus;
-              platforms = pkgs.lib.platforms.linux;
-              mainProgram = "niri-focused-booster";
-            };
           };
+        in
+        {
+          inherit dmemcg-booster niri-focused-booster;
+
+          default = niri-focused-booster;
         });
 
       apps = forAllSystems (system: {
@@ -79,8 +95,16 @@
         in
         {
           default = pkgs.mkShell {
-            inputsFrom = [ self.packages.${system}.default ];
-            packages = [ pkgs.cargo pkgs.rustc pkgs.rust-analyzer pkgs.clippy ];
+            inputsFrom = [
+              self.packages.${system}.default
+            ];
+
+            packages = [
+              pkgs.cargo
+              pkgs.rustc
+              pkgs.rust-analyzer
+              pkgs.clippy
+            ];
           };
         });
     };
