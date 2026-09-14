@@ -90,10 +90,16 @@
           default = niri-focused-booster;
         });
 
+
       apps = forAllSystems (system: {
         default = {
           type = "app";
-          program = "${self.packages.${system}.default}/bin/niri-focused-booster";
+          program = "${self.packages.${system}.niri-focused-booster}/bin/niri-focused-booster";
+
+          meta = {
+            description = "Boosts dmem cgroup memory protection for the focused window on Niri";
+            mainProgram = "niri-focused-booster";
+          };
         };
       });
 
