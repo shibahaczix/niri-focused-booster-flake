@@ -7,8 +7,6 @@ dmemcg-booster usage:
   ];
 
   services.dmemcg-booster.enable = true;
-  
-
 }
 ```
 for whatever niri wrapper you use:
