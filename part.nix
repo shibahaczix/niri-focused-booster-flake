@@ -117,14 +117,14 @@
     };
 
   flake.nixosModules.default =
-    { config, lib, pkgs, self, ... }:
+    { config, lib, pkgs, ... }:
     {
       options.services.dmemcg-booster.enable =
         lib.mkEnableOption "dmemcg-booster system service";
 
       config = lib.mkIf config.services.dmemcg-booster.enable {
         systemd.packages = [
-          self.packages.${pkgs.system}.dmemcg-booster
+          inputs.self.packages.${pkgs.system}.dmemcg-booster
         ];
 
         systemd.services.dmemcg-booster-system = {
