@@ -74,6 +74,14 @@
 
             nativeBuildInputs = [ pkgs.pkg-config ];
             buildInputs = [ pkgs.libxcb ];
+
+            meta = {
+              description = "Boosts dmem cgroup memory protection for the focused window on Niri";
+              homepage = "https://github.com/1Naim/niri-focused-booster";
+              license = pkgs.lib.licenses.gpl3Plus;
+              platforms = pkgs.lib.platforms.linux;
+              mainProgram = "niri-focused-booster";
+            };
           };
         in
         {
